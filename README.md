@@ -245,3 +245,5 @@ Este proyecto es una plantilla para uso personal/comercial.
 
 Desarrollado con ❤️ para facilitar la creación de ecommerce con microservicios.
 
+#   p l a n t i l l a  
+ 
