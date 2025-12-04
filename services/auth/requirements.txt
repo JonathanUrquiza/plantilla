@@ -1,0 +1,55 @@
+# ==============================================================================
+# DEPENDENCIAS DEL SERVICIO DE AUTENTICACIÓN
+# ==============================================================================
+# Instalar con: pip install -r requirements.txt
+# Para desarrollo: pip install -r requirements.txt -r requirements-dev.txt
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Framework Web
+# ------------------------------------------------------------------------------
+fastapi>=0.104.0          # Framework web asíncrono
+uvicorn[standard]>=0.24.0 # Servidor ASGI para FastAPI
+
+# ------------------------------------------------------------------------------
+# Base de Datos
+# ------------------------------------------------------------------------------
+sqlalchemy>=2.0.0         # ORM para Python
+alembic>=1.12.0           # Migraciones de base de datos
+asyncpg>=0.29.0           # Driver asíncrono para PostgreSQL
+greenlet>=3.0.0           # Requerido por SQLAlchemy async
+
+# ------------------------------------------------------------------------------
+# Cache (Redis)
+# ------------------------------------------------------------------------------
+redis>=5.0.0              # Cliente Redis para Python
+
+# ------------------------------------------------------------------------------
+# Validación y Configuración
+# ------------------------------------------------------------------------------
+pydantic>=2.5.0           # Validación de datos
+pydantic-settings>=2.1.0  # Configuración desde variables de entorno
+email-validator>=2.1.0    # Validación de emails (para EmailStr)
+
+# ------------------------------------------------------------------------------
+# Autenticación y Seguridad
+# ------------------------------------------------------------------------------
+python-jose[cryptography]>=3.3.0  # Manejo de JWT
+passlib[bcrypt]>=1.7.4            # Hasheo de contraseñas con bcrypt
+python-multipart>=0.0.6           # Para formularios (OAuth2PasswordRequestForm)
+
+# ------------------------------------------------------------------------------
+# HTTP Client (para OAuth2)
+# ------------------------------------------------------------------------------
+httpx>=0.25.0             # Cliente HTTP asíncrono (para llamar a Google/Facebook)
+
+# ------------------------------------------------------------------------------
+# Rate Limiting
+# ------------------------------------------------------------------------------
+slowapi>=0.1.9            # Rate limiting para FastAPI
+
+# ------------------------------------------------------------------------------
+# Utilidades
+# ------------------------------------------------------------------------------
+python-dotenv>=1.0.0      # Cargar .env automáticamente
+

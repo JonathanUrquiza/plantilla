@@ -1,0 +1,266 @@
+# ==============================================================================
+# DOCKER COMPOSE - DESARROLLO LOCAL
+# ==============================================================================
+# Este archivo levanta toda la infraestructura necesaria para desarrollo.
+#
+# USO:
+#   docker-compose up -d          # Levantar todo en background
+#   docker-compose up -d postgres redis  # Solo BD y cache
+#   docker-compose logs -f auth   # Ver logs de un servicio
+#   docker-compose down           # Detener todo
+#   docker-compose down -v        # Detener y borrar volúmenes
+#
+# NOTA: Para producción usar docker-compose.prod.yml
+# ==============================================================================
+
+version: '3.8'
+
+services:
+  # ============================================================================
+  # BASE DE DATOS - PostgreSQL
+  # ============================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: ecommerce-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      # Se crean múltiples bases de datos al iniciar
+      POSTGRES_MULTIPLE_DATABASES: auth_db,users_db,products_db,orders_db,payments_db,shipping_db,notifications_db,downloads_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Script para crear múltiples DBs
+      - ./scripts/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # CACHE - Redis
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: ecommerce-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # MICROSERVICIOS
+  # ============================================================================
+  # Descomentar cada servicio cuando esté implementado
+  
+  # --------------------------------------------------------------------------
+  # Auth Service
+  # --------------------------------------------------------------------------
+  # auth:
+  #   build:
+  #     context: ../services/auth
+  #     dockerfile: Dockerfile
+  #   container_name: ecommerce-auth
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8001:8000"
+  #   environment:
+  #     - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/auth_db
+  #     - REDIS_URL=redis://redis:6379/0
+  #     - SECRET_KEY=${SECRET_KEY:-development_secret_key_change_in_production}
+  #     - DEBUG=true
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+
+  # --------------------------------------------------------------------------
+  # Users Service
+  # --------------------------------------------------------------------------
+  # users:
+  #   build:
+  #     context: ../services/users
+  #     dockerfile: Dockerfile
+  #   container_name: ecommerce-users
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8002:8000"
+  #   environment:
+  #     - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/users_db
+  #     - REDIS_URL=redis://redis:6379/1
+  #     - AUTH_SERVICE_URL=http://auth:8000
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+
+  # --------------------------------------------------------------------------
+  # Products Service
+  # --------------------------------------------------------------------------
+  # products:
+  #   build:
+  #     context: ../services/products
+  #     dockerfile: Dockerfile
+  #   container_name: ecommerce-products
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8003:8000"
+  #   environment:
+  #     - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/products_db
+  #     - REDIS_URL=redis://redis:6379/2
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+
+  # --------------------------------------------------------------------------
+  # Cart Service
+  # --------------------------------------------------------------------------
+  # cart:
+  #   build:
+  #     context: ../services/cart
+  #     dockerfile: Dockerfile
+  #   container_name: ecommerce-cart
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8004:8000"
+  #   environment:
+  #     - REDIS_URL=redis://redis:6379/3
+  #     - PRODUCTS_SERVICE_URL=http://products:8000
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+
+  # --------------------------------------------------------------------------
+  # Orders Service
+  # --------------------------------------------------------------------------
+  # orders:
+  #   build:
+  #     context: ../services/orders
+  #     dockerfile: Dockerfile
+  #   container_name: ecommerce-orders
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8005:8000"
+  #   environment:
+  #     - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/orders_db
+  #     - REDIS_URL=redis://redis:6379/4
+  #     - CART_SERVICE_URL=http://cart:8000
+  #     - PRODUCTS_SERVICE_URL=http://products:8000
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+
+  # --------------------------------------------------------------------------
+  # Payments Service
+  # --------------------------------------------------------------------------
+  # payments:
+  #   build:
+  #     context: ../services/payments
+  #     dockerfile: Dockerfile
+  #   container_name: ecommerce-payments
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8006:8000"
+  #   environment:
+  #     - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/payments_db
+  #     - MERCADOPAGO_ACCESS_TOKEN=${MERCADOPAGO_ACCESS_TOKEN}
+  #     - ORDERS_SERVICE_URL=http://orders:8000
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+
+  # --------------------------------------------------------------------------
+  # Shipping Service
+  # --------------------------------------------------------------------------
+  # shipping:
+  #   build:
+  #     context: ../services/shipping
+  #     dockerfile: Dockerfile
+  #   container_name: ecommerce-shipping
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8007:8000"
+  #   environment:
+  #     - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/shipping_db
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+
+  # --------------------------------------------------------------------------
+  # Notifications Service
+  # --------------------------------------------------------------------------
+  # notifications:
+  #   build:
+  #     context: ../services/notifications
+  #     dockerfile: Dockerfile
+  #   container_name: ecommerce-notifications
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8008:8000"
+  #   environment:
+  #     - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/notifications_db
+  #     - SMTP_HOST=${SMTP_HOST}
+  #     - SMTP_PORT=${SMTP_PORT:-587}
+  #     - SMTP_USER=${SMTP_USER}
+  #     - SMTP_PASSWORD=${SMTP_PASSWORD}
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+
+  # --------------------------------------------------------------------------
+  # Downloads Service
+  # --------------------------------------------------------------------------
+  # downloads:
+  #   build:
+  #     context: ../services/downloads
+  #     dockerfile: Dockerfile
+  #   container_name: ecommerce-downloads
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8009:8000"
+  #   environment:
+  #     - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/downloads_db
+  #     - ORDERS_SERVICE_URL=http://orders:8000
+  #   volumes:
+  #     - downloads_data:/app/files
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+
+
+# ==============================================================================
+# VOLÚMENES
+# ==============================================================================
+volumes:
+  postgres_data:
+    name: ecommerce-postgres-data
+  redis_data:
+    name: ecommerce-redis-data
+  downloads_data:
+    name: ecommerce-downloads-data
+
+
+# ==============================================================================
+# REDES
+# ==============================================================================
+networks:
+  default:
+    name: ecommerce-network
+
